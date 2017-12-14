@@ -1,1 +1,16 @@
-// Package File
+{ 
+	"name": "gumshoe",
+  "description": "The Itsy Bitsy Spider",
+  "version": "0.1.0",
+  "devDependencies": {
+    "express": "latest",
+    "cheerio": "latest",
+    "request": "latest",
+    "readline": "latest"
+  },
+  "scripts": {
+  	"start:dev": "NODE_ENV=development node app.js",
+  	"start:prod": "NODE_ENV=production node app.js"
+  },
+  "main": "app.js"
+}
