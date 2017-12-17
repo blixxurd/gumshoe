@@ -6,7 +6,9 @@
     "express": "latest",
     "cheerio": "latest",
     "request": "latest",
-    "readline": "latest"
+    "request-promise": "latest",
+    "readline": "latest",
+    "valid-url": "latest"
   },
   "scripts": {
   	"start:dev": "NODE_ENV=development node app.js",
