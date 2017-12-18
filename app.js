@@ -19,12 +19,11 @@ const app = require("./app/initializers");
 app.input.question('What URL do you want to crawl?', (url) => {
   //Discover URL
   let discovery = require('./app/controllers/discovery')(Cheerio, Request);
-  let discovery_crawl = discovery.crawl(url);
 
   //Do discovery crawl, and set URL Data.
-  discovery_crawl.then(function(res) {
+  discovery.crawl(url).then(function(res) {
   	//Successful URL data from verification
-  	console.log(res);
+  	discovery.getAllUrls(res).then(console.log(res));
   }, function(err) {
   	app.errors = err;
   });
