@@ -5,8 +5,7 @@ module.exports = function(cheerio, request) {
 	const url_list = {
 		discovered: [],
 		started: [],
-		crawled: [],
-		promised: [],
+		crawled: []
 	};
 
 	let _isRelativeUrl = (url) => {
@@ -18,7 +17,11 @@ module.exports = function(cheerio, request) {
 		let _root = url_tool.parse(global.config.root_domain).hostname;
 		let _crawled = url_tool.parse(url).hostname;
 		return (_root == _crawled) ? true : false;
-	}
+	};
+
+	let _isPristine = (url) => {
+		return (url_list.discovered.length == 0 && url_list.started.length == 0  && url_list.crawled.length == 0) ? true : false;
+	};
 
 	let _checkArray = (url, arr) => {
 		return {exists: (arr.indexOf(url) > -1 ? true : false), index: arr.indexOf(url)};
@@ -27,8 +30,12 @@ module.exports = function(cheerio, request) {
 	let _removeFromArray = (url, arr) => {
 		let index = arr.indexOf(url);
 		if (index > -1) {
-    	arr.splice(index, 1);
+			arr.splice(index, 1);
 		}
+	}
+
+	let _notYetFound = (url) => {
+		return (!_checkArray(url, url_list.started).exists && !_checkArray(url, url_list.crawled).exists && !_checkArray(url, url_list.discovered).exists);
 	}
 
 	let _getPageLinks = ($, url) => {
@@ -41,7 +48,7 @@ module.exports = function(cheerio, request) {
 				if(_isRelativeUrl(l)) {
 					l = url_tool.resolve(url, l);
 				}
-				if(!_checkArray(l, url_list.discovered).exists && !_checkArray(l, url_list.crawled).exists && _isProperDomain(l)) {
+				if(_notYetFound(l) && _isProperDomain(l)) {
 					links.push(l);
 				}
 			}
@@ -55,54 +62,56 @@ module.exports = function(cheerio, request) {
 			let rq_config =  global.config.request;
 					rq_config.uri = url;
 			console.log(reporter, `Starting Page Crawl on ${rq_config.uri}`);
-			if(!_checkArray(url, url_list.started).exists && !_checkArray(url, url_list.crawled).exists) {
-				request(rq_config, function(error, response, body){
-					if(error) {
-						console.log(reporter, `Crawl request failed on url : ${rq_config.uri}`);
-						reject(error);
-					} else {
-						$page = cheerio.load(body);
-						console.log(reporter, `Successful page crawl. Resolving to action.`);
-						resolve(action($page, url));
-					}
-				});
-			} else {
-				resolve(function() {
-					console.log("Page already in progress.")
-				}());
-			}
+			request(rq_config, function(error, response, body){
+				if(error) {
+					console.log(reporter, `Crawl request failed on url : ${rq_config.uri} -- ${error}`);
+					reject(error);
+				} else {
+					$page = cheerio.load(body);
+					console.log(reporter, `Successful page crawl. Resolving to action.`);
+					resolve(action($page, url));
+				}
+			});
 		});
 	}
 
 	let _runCrawlLoop = (callback) => {
 		url_list.discovered.forEach(function(e) {
 			//Send Request to the page
-			url_list.promised.push(
+			if(url_list.started.length > 5) {
+				console.log(reporter, `Crawl Limit Hit. Sleeping for 5 seconds...`)
+				setTimeout(() => {
+					_runCrawlLoop();
+				}, interval)
+			} else if((!_checkArray(e, url_list.started).exists && !_checkArray(e, url_list.crawled).exists) || _isPristine) {
+				console.log(reporter, "PASSED CRAWL LIST");
+				_removeFromArray(e, url_list.discovered);
+				url_list.started.push(e);
+
 				_crawlPage(e, _getPageLinks).then(function(links) {
-					if(_checkArray(e, url_list.discovered).exists) {
-						//Remove Page & Add to crawled list
-						_removeFromArray(e, url_list.discovered);
-						url_list.started.push(e);
-						if(!_checkArray(e, url_list.crawled).exists) {
-							_removeFromArray(e, url_list.started);
-							url_list.crawled.push(e);
-						}
-					}
+					_removeFromArray(e, url_list.started);
+					url_list.crawled.push(e);
 					for (var i = links.length - 1; i >= 0; i--) {
-						if(url_list.discovered.indexOf(links[i]) == -1) {
+						if(_notYetFound(links[i])) {
 							url_list.discovered.push(links[i]);
 						}
 					}
 					if(url_list.discovered.length > 0) {
-						//console.log(url_list);
 						_runCrawlLoop();
 					}
 					if(typeof callback == 'function' && url_list.discovered.length==0) {
 						//Done...
 						callback();
 					}
-				})
-			);
+				}).catch(function(err) {
+					url_list.discovered.push(e);
+				});
+
+			} else {
+				console.log(reporter, 'Unhandled Scenario');
+				callback();
+			}
+
 		});
 			//Send Request to the page
 				//CrawlPage
@@ -117,9 +126,7 @@ module.exports = function(cheerio, request) {
 		//Set entry URL first.
 		url_list.discovered.push(global.config.entry);
 		_runCrawlLoop(function() {
-			if(url_list.discovered.length > 0) {
-
-			}
+			console.log("Done!");
 		});
 		//callback(url_list);
 	};

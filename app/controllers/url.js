@@ -40,7 +40,7 @@ module.exports = function(cheerio, request) {
 			console.log(reporter, "URL is formatted correctly.");
 			request(rq_config, function(error, response){
 				if(error) {
-					console.log(reporter, "Error retrieving URL info from host.");
+					console.log(reporter, `Error retrieving URL info from host -- [${error}].`);
 					callback(return_data);
 				} else {
 					return_data.host = response.request.uri;
