@@ -1,5 +1,5 @@
 module.exports = function(cheerio, request) {
-	const reporter = "[URL VALIDITY CHECK]";
+	const reporter = "[URL_VALIDITY]";
 	const validUrl = require('valid-url');
 	const net_verify = {
 		'http:' 	: require('http'),

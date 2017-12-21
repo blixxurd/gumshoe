@@ -1,4 +1,5 @@
 module.exports = function(cheerio, request) {
+	const reporter = "[DISCOVERY]";
 	const module = {};
 	const URL = require('./url')(cheerio, request);
 	const CRAWLER = require('./crawler')(cheerio, request);
@@ -6,7 +7,7 @@ module.exports = function(cheerio, request) {
 	//Revealed Modules
 	module.crawl = (url) => {
 		return new Promise(function(resolve, reject) {
-			// Do async job
+			console.log(reporter, 'Initiating domain data discovery.');
 			URL.getUrlData(url, function(res) {
 				if(res.error) {
 					reject(res.error);
@@ -19,7 +20,10 @@ module.exports = function(cheerio, request) {
 
 	module.getAllUrls = (host_data) => {
 		return new Promise(function(resolve, reject) {
-			resolve(CRAWLER.findUrls(host_data));
+			console.log(reporter, 'Initiating URL List Discovery.');
+			CRAWLER.findUrls(host_data, function(url_list) {
+				resolve(url_list);
+			});
 		});
 	};
 

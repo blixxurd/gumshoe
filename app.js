@@ -23,13 +23,20 @@ app.input.question('What URL do you want to crawl?', (url) => {
   //Do discovery crawl, and set URL Data.
   discovery.crawl(url).then(function(res) {
   	//Successful URL data from verification
-  	discovery.getAllUrls(res).then(console.log(res));
+  	global.config.entry = res.data.host.href;
+  	global.config.root_domain = `${res.data.host.protocol}//${res.data.host.hostname}`;
+  	console.log(res);
+  	console.log(global.config.root_domain);
+  	discovery.getAllUrls(res).then(function(url_list) {
+  		console.log("APP", url_list);
+  	});
   }, function(err) {
   	app.errors = err;
   });
 
   app.input.close();
 });
+
 
 /* App Core
 	
