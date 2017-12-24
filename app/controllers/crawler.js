@@ -113,10 +113,6 @@ module.exports = function(cheerio, request) {
 			}
 
 		});
-			//Send Request to the page
-				//CrawlPage
-					//Get Page Links
-						//Repeat if discovered list is same size
 
 	};
 
@@ -128,7 +124,6 @@ module.exports = function(cheerio, request) {
 		_runCrawlLoop(function() {
 			console.log("Done!");
 		});
-		//callback(url_list);
 	};
 
 	return module;
