@@ -22,6 +22,10 @@ module.exports = function(cheerio, request) {
 		req.end();
 	}
 
+	function _hasLinkPrefix(url) {
+		return (url.indexOf('http://') == 0 || url.indexOf("https://") == 0);
+	}
+
 	function _checkUrl(url, callback) {
 		console.log(reporter, "Checking URL Details...");
 		let rq_config =  global.config.request;
@@ -30,7 +34,7 @@ module.exports = function(cheerio, request) {
 		let return_data = {url: url, valid: false, host: undefined};
 
 		//Check for http, append if necesary
-		if (url.indexOf('http://') == -1 && url.indexOf("https://") == -1) {
+		if (!_hasLinkPrefix(url)) {
 			console.log(reporter, "No protocol found. Defaulting to http://.");
 			url = rq_config.uri = `http://${url}`;
 		}
@@ -70,6 +74,9 @@ module.exports = function(cheerio, request) {
 			}
 		});
 	};
+
+	//Link prefix Check
+	module.properProtocol = _hasLinkPrefix;
 
 	return module;
 
