@@ -6,7 +6,8 @@ module.exports = function(cheerio, request) {
 	const url_list = {
 		discovered: [],
 		started: [],
-		crawled: []
+		crawled: [],
+		failed: []
 	};
 
 	let active_loops = 0;
@@ -62,7 +63,7 @@ module.exports = function(cheerio, request) {
 	let _getPageLinks = ($, url) => {
 		let links = [],
 				link_count = $('a').length;
-		console.log(reporter, `[${url}] Found ${link_count} links on page.`);
+		//console.log(reporter, `[${url}] Found ${link_count} links on page.`);
 		$('a').each(function(i, ele) {
 			let l = $(this).attr('href');
 			if(typeof l == "string") {
@@ -79,7 +80,7 @@ module.exports = function(cheerio, request) {
 				}
 			}
 		});
-		console.log(reporter, `[${url}] Adding ${links.length} newly discovered links to URL List.`);
+		//console.log(reporter, `[${url}] Adding ${links.length} newly discovered links to URL List.`);
 		return links;
 	};
 
@@ -94,7 +95,7 @@ module.exports = function(cheerio, request) {
 					reject(error);
 				} else {
 					$page = cheerio.load(body);
-					console.log(reporter, `[${url}] Resolving to action.`);
+					//console.log(reporter, `[${url}] Resolving to action.`);
 					resolve(action($page, url));
 				}
 			});
@@ -105,7 +106,7 @@ module.exports = function(cheerio, request) {
 		//Future Aaron -- Add a way to log the number of active loops here, and then set a limit for those to stop multiple URLs from being crawled at once. 
 		if(active_loops == 0) {
 			active_loops++;
-			console.log('----NEW CRAWL LOOP----');
+			//console.log('----NEW CRAWL LOOP----');
 			url_list.discovered.forEach(function(e, index) {
 				//Send Request to the page
 				if(url_list.started.length > global.config.max_concurrency) {
@@ -122,23 +123,23 @@ module.exports = function(cheerio, request) {
 								url_list.discovered.push(links[i]);
 							}
 						}
-						console.log('----CRAWL CALLBACK POST LOOP----');
+						//console.log('----CRAWL CALLBACK POST LOOP----');
 						if(url_list.discovered.length > 0) {
 							active_loops = 0;
-							console.log('----CALLING RECURSIVE CRAWL LOOP----');
+							//console.log('----CALLING RECURSIVE CRAWL LOOP----');
 							_runCrawlLoop(callback);
 						} 
 						if(_noRemaining() && index==0) {
 							//Done...
-							console.log('----CALLING CALLBACK----');
+							//console.log('----CALLING CALLBACK----');
 							callback();
 							return;
 						}
-						console.log("DEAD", `Discovered: ${url_list.discovered.length} || Index: ${index} || Current URL: ${e}`);
+						console.log(`Discovered: ${url_list.discovered.length} || Crawled: ${url_list.discovered.length} || || In Progress: Index: ${url_list.started.length} || Current URL: ${e} || Index: ${index}`);
 					}).catch(function(err) {
-						console.log('----CATCHING EXCEPTION----');
+						//console.log('----CATCHING EXCEPTION----');
 						console.log(reporter, `[${e}] ${err}`);
-						url_list.discovered.push(e);
+						url_list.failed.push(e);
 						console.log(reporter, "Error caught. Waiting 10 seconds to resume loop.");
 						active_loops = 0;
 						setTimeout(function() {
@@ -148,13 +149,13 @@ module.exports = function(cheerio, request) {
 					});
 
 				} else {
-					console.log('----UNHANDLED SCENARIO----');
+					//console.log('----UNHANDLED SCENARIO----');
 					callback();
 				}
 
 			});
 		} else {
-			console.log('----TOO MANY LOOPS RECURSIVE CALL----');
+			//console.log('----TOO MANY LOOPS RECURSIVE CALL----');
 			active_loops = 0;
 			_runCrawlLoop(callback);
 		}
