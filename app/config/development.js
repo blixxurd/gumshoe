@@ -1,13 +1,14 @@
 module.exports = function() {
 	return {
-		max_concurrency: 3,
+		max_concurrency: 4,
+		sleep_delay: 1000,
 		request : {
-			timeout: 2000,
+			timeout: 10000,
 			headers: {
-				'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36'
+				'User-Agent': 'GumshoeBot'
 			},
-			// agent: false, 
-			// pool: {maxSockets: 100}
+			agent: false, 
+			pool: {maxSockets: Infinity}
 		}
 	}
 }

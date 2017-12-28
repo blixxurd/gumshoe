@@ -98,6 +98,7 @@ module.exports = function(cheerio, request) {
 					//console.log(reporter, `[${url}] Resolving to action.`);
 					resolve(action($page, url));
 				}
+				this.abort();
 			});
 		});
 	}
@@ -135,7 +136,7 @@ module.exports = function(cheerio, request) {
 							callback();
 							return;
 						}
-						console.log(`Discovered: ${url_list.discovered.length} || Crawled: ${url_list.discovered.length} || || In Progress: Index: ${url_list.started.length} || Current URL: ${e} || Index: ${index}`);
+						console.log(`Discovered: ${url_list.discovered.length} || Crawled: ${url_list.crawled.length} || In Progress: ${url_list.started.length} || Index: ${index} || Failed: ${url_list.failed.length}`);
 					}).catch(function(err) {
 						//console.log('----CATCHING EXCEPTION----');
 						console.log(reporter, `[${e}] ${err}`);
@@ -169,6 +170,7 @@ module.exports = function(cheerio, request) {
 		url_list.discovered.push(global.config.entry);
 		_runCrawlLoop(function() {
 			console.log("Done!");
+			callback(url_list);
 		});
 	};
 

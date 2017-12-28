@@ -7,6 +7,7 @@ const Cheerio 		= require('cheerio'),
 			Request 		= require('request'),
 			Readline		= require('readline');
 
+
 //App level includes
 const app = require("./app/initializers");
 			app.input = Readline.createInterface({
@@ -14,6 +15,9 @@ const app = require("./app/initializers");
   			output: process.stdout
 			});
 			app.errors = [];
+
+//Set Reporter for Debugging
+const reporter = '[App]';
 
 //Get the URL
 app.input.question('What URL do you want to crawl?', (url) => {
@@ -28,7 +32,7 @@ app.input.question('What URL do you want to crawl?', (url) => {
   	//console.log(res);
   	//console.log(global.config.root_domain);
   	discovery.getAllUrls(res).then(function(url_list) {
-  		console.log("APP", url_list);
+  		console.log(reporter, `Found ${url_list.crawled.length} URLs on ${global.config.root_domain}`);
   	});
   }, function(err) {
   	app.errors = err;

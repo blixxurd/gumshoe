@@ -21,7 +21,7 @@ module.exports = function(cheerio, request) {
 	module.getAllUrls = (host_data) => {
 		return new Promise(function(resolve, reject) {
 			console.log(reporter, 'Initiating URL List Discovery.');
-			CRAWLER.findUrls(host_data, function(url_list) {
+			CRAWLER.findUrls(function(url_list) {
 				resolve(url_list);
 			});
 		});

@@ -8,10 +8,12 @@
     "request": "latest",
     "request-promise": "latest",
     "readline": "latest",
-    "valid-url": "latest"
+    "valid-url": "latest",
+    "robots": "latest",
+    "sitemapper": "latest"
   },
   "scripts": {
-  	"start:dev": "NODE_ENV=development node app.js",
+  	"start:dev": "NODE_ENV=development node --max-old-space-size=4096 app.js",
   	"start:prod": "NODE_ENV=production node app.js"
   },
   "main": "app.js"
