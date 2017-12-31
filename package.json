@@ -9,7 +9,7 @@
     "request-promise": "latest",
     "readline": "latest",
     "valid-url": "latest",
-    "robots": "latest",
+    "robots-parser": "latest",
     "sitemapper": "latest"
   },
   "scripts": {

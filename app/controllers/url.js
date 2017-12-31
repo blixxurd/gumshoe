@@ -6,6 +6,7 @@ module.exports = function(cheerio, request) {
 		'https:'	: require('https')
 	};
 	const module = {};
+	const RobotsParser = require('robots-parser');
 
 	function _netVerify(data, callback) {
 		console.log(reporter, `Attempting Net Verify over ${data.host.protocol}// protocol on port ${data.host.port}`);
@@ -50,8 +51,8 @@ module.exports = function(cheerio, request) {
 					return_data.host = response.request.uri;
 					return_data.valid = true;
 					console.log(reporter, "Successfully retrieved host data.");
-					_netVerify(return_data, function() {
-						callback(return_data);
+					_netVerify(return_data, function(data) {
+						callback(data);
 					});
 				}
 			});
@@ -67,6 +68,7 @@ module.exports = function(cheerio, request) {
 		_checkUrl(url, function(data) {
 			if(data.valid && data.host!==undefined) {
 				console.log(reporter, "This is a valid URL.");
+				data.robots = RobotsParser(data.host.href + 'robots.txt');
 				callback({data: data});
 			} else {
 				console.log(reporter, "This is an invalid URL.");

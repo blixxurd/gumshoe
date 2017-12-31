@@ -29,8 +29,7 @@ app.input.question('What URL do you want to crawl?', (url) => {
   	//Successful URL data from verification
   	global.config.entry = res.data.host.href;
   	global.config.root_domain = `${res.data.host.protocol}//${res.data.host.hostname}`;
-  	//console.log(res);
-  	//console.log(global.config.root_domain);
+  	// console.log(res.data.robots.isAllowed(res.data.host.href+'wp-admin/', 'GumshoeBot'));
   	discovery.getAllUrls(res).then(function(url_list) {
   		console.log(reporter, `Found ${url_list.crawled.length} URLs on ${global.config.root_domain}`);
   	});
@@ -40,7 +39,6 @@ app.input.question('What URL do you want to crawl?', (url) => {
 
   app.input.close();
 });
-
 
 /* App Core
 	

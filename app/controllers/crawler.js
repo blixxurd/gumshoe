@@ -1,6 +1,8 @@
 module.exports = function(cheerio, request) {
 	const reporter = "[CRAWLER]";
 	const url_tool = require('url');
+	const Sitemapper = require('sitemapper');
+	const RobotsParser = require('robots-parser');
 	const URL = require('./url')(cheerio, request);
 	const module = {};
 	const url_list = {
@@ -23,7 +25,7 @@ module.exports = function(cheerio, request) {
 		return (_root == _crawled) ? true : false;
 	};
 
-	let _isPristine = (url) => {
+	let _isPristine = () => {
 		return (url_list.discovered.length == 0 && url_list.started.length == 0  && url_list.crawled.length == 0) ? true : false;
 	};
 
@@ -60,6 +62,26 @@ module.exports = function(cheerio, request) {
 		return (!_checkArray(url, url_list.started).exists && !_checkArray(url, url_list.crawled).exists && !_checkArray(url, url_list.discovered).exists);
 	}
 
+	let _isNoFollow = ($) => {
+
+	}
+
+	let _safeStatusCode = (code) => {
+		return code.toString()[0] == 2 ? true : false;
+	}
+
+	let _safeContentType = (type) => {
+		return type.indexOf('text/html') == 0 ? true : false;
+	}
+
+	let _loadSitemapPages = () => {
+		let sitemap = new Sitemapper({
+		  url: global.config.root_domain + '/sitemap.xml',
+		  timeout: 15000
+		});
+		return sitemap.fetch();
+	}
+
 	let _getPageLinks = ($, url) => {
 		let links = [],
 				link_count = $('a').length;
@@ -94,9 +116,13 @@ module.exports = function(cheerio, request) {
 				if(error) {
 					reject(error);
 				} else {
-					$page = cheerio.load(body);
-					//console.log(reporter, `[${url}] Resolving to action.`);
-					resolve(action($page, url));
+					if(_safeStatusCode(response.statusCode) && _safeContentType(response.headers['content-type'])) {
+						$page = cheerio.load(body);
+						//console.log(reporter, `[${url}] Resolving to action.`);
+						resolve(action($page, url));
+					} else {
+						reject(`Unsafe Status Code or Content Type - ${response.statusCode} - ${response.headers['content-type']}`);
+					}
 				}
 				this.abort();
 			});
@@ -104,7 +130,6 @@ module.exports = function(cheerio, request) {
 	}
 
 	let _runCrawlLoop = (callback) => {
-		//Future Aaron -- Add a way to log the number of active loops here, and then set a limit for those to stop multiple URLs from being crawled at once. 
 		if(active_loops == 0) {
 			active_loops++;
 			//console.log('----NEW CRAWL LOOP----');
@@ -112,7 +137,7 @@ module.exports = function(cheerio, request) {
 				//Send Request to the page
 				if(url_list.started.length > global.config.max_concurrency) {
 					return;
-				} else if(_needsToBeCrawled(e) || _isPristine) {
+				} else if(_needsToBeCrawled(e) || _isPristine()) {
 					_removeFromArray(e, url_list.discovered);
 					url_list.started.push(e);
 
@@ -165,14 +190,30 @@ module.exports = function(cheerio, request) {
 
 	//Revealed Modules
 	module.findUrls = (callback) => {
-		console.log(reporter, "Hunting for URLs.");
-		//Set entry URL first.
-		url_list.discovered.push(global.config.entry);
+
+		//Load URLs from the sitemap
+		_loadSitemapPages().then((data) => {
+			console.log(reporter, `Found ${data.sites.length} in Sitemap`);
+			url_list.discovered = url_list.discovered.concat(url_list.discovered, data.sites);
+		}).catch((error) => {
+			console.log(reporter, 'No sites found in sitemap.');
+		});
+
+		//Add the entry URL if it's not already there
+		if(_notYetFound(global.config.entry)) {
+			url_list.discovered.push(global.config.entry);
+		}
+
+		//Then run the crawl loop
 		_runCrawlLoop(function() {
 			console.log("Done!");
 			callback(url_list);
 		});
 	};
+
+	module.robotsTester = () => {
+
+	}
 
 	return module;
 

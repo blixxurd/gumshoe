@@ -9,18 +9,20 @@ Actively working on discovery methods.
 
 ## Milestones
 * Scaffold App :white_check_mark:
-* Create "Discovery" methods 
-* Create crawling methods
+* Create "Discovery" methods :large_blue_diamond: 
+* Create custom script injection :large_blue_diamond: 
+* Create crawling scripts
 
 ### To Do
-* Handle non-200s in discovery mode
-* Make sure discovery mode is only looking for text/html types
+* Handle non-200s in discovery mode :white_check_mark:
+* Make sure discovery mode is only looking for text/html types :white_check_mark:
 * Handle hashtags in URLs in discovery mode :white_check_mark:
 * Find out what's causing infinite crawl loop bug :white_check_mark:
 * Obey robots.txt (robots npm) :large_blue_diamond:
 * Utilize sitemap.xml if available (sitemapper npm) :large_blue_diamond:
 * Handle mailto & other non-http links. :white_check_mark:
-* Obey Canonical
+* State saving (discovery)
 * Obey NOFOLLOW
+
 
 [![forthebadge](http://forthebadge.com/images/badges/certified-steve-bruhle.svg)](http://forthebadge.com)
