@@ -23,6 +23,7 @@ Actively working on discovery methods.
 * Handle mailto & other non-http links. :white_check_mark:
 * State saving (discovery)
 * Obey NOFOLLOW
+* Timed cleanup task that sorts out orphaned processes.
 
 
 [![forthebadge](http://forthebadge.com/images/badges/certified-steve-bruhle.svg)](http://forthebadge.com)

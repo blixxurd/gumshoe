@@ -134,6 +134,8 @@ module.exports = function(cheerio, request) {
 					}
 				}
 			});
+
+			//Maybe pass this in the callback, and abort if needed there? 
 			setTimeout(function() {
 				r.abort();
 			}, global.config.request.timeout + 1000);
