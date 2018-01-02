@@ -11,6 +11,7 @@ module.exports = function(cheerio, request) {
 		crawled: [],
 		failed: []
 	};
+	const last_success = 0;
 
 	let active_loops = 0;
 
@@ -55,11 +56,19 @@ module.exports = function(cheerio, request) {
 	}
 
 	let _needsToBeCrawled = (url) => {
-		return (!_checkArray(url, url_list.started).exists && !_checkArray(url, url_list.crawled).exists && _checkArray(url, url_list.discovered).exists);
+		if(typeof url == 'string') {
+			return (!_checkArray(url, url_list.started).exists && !_checkArray(url, url_list.crawled).exists && _checkArray(url, url_list.discovered).exists);
+		} else {
+			return false;
+		}
 	}
 
 	let _notYetFound = (url) => {
 		return (!_checkArray(url, url_list.started).exists && !_checkArray(url, url_list.crawled).exists && !_checkArray(url, url_list.discovered).exists);
+	}
+
+	let _hasCapacity = () => {
+		return url_list.started.length < global.config.max_concurrency ? true : false;
 	}
 
 	let _isNoFollow = ($) => {
@@ -112,7 +121,7 @@ module.exports = function(cheerio, request) {
 					rq_config.uri = url;
 			//console.log(reporter, `Starting Page Crawl on ${rq_config.uri}`);
 
-			request(rq_config, function(error, response, body){
+			let r = request(rq_config, function(error, response, body){
 				if(error) {
 					reject(error);
 				} else {
@@ -124,66 +133,98 @@ module.exports = function(cheerio, request) {
 						reject(`Unsafe Status Code or Content Type - ${response.statusCode} - ${response.headers['content-type']}`);
 					}
 				}
-				this.abort();
 			});
+			setTimeout(function() {
+				r.abort();
+			}, global.config.request.timeout + 1000);
 		});
 	}
 
 	let _runCrawlLoop = (callback) => {
-		if(active_loops == 0) {
-			active_loops++;
-			//console.log('----NEW CRAWL LOOP----');
-			url_list.discovered.forEach(function(e, index) {
-				//Send Request to the page
-				if(url_list.started.length > global.config.max_concurrency) {
-					return;
-				} else if(_needsToBeCrawled(e) || _isPristine()) {
-					_removeFromArray(e, url_list.discovered);
-					url_list.started.push(e);
 
-					_crawlPage(e, _getPageLinks).then(function(links) {
-						_removeFromArray(e, url_list.started);
-						url_list.crawled.push(e);
-						for (var i = links.length - 1; i >= 0; i--) {
-							if(_notYetFound(links[i])) {
-								url_list.discovered.push(links[i]);
-							}
-						}
-						//console.log('----CRAWL CALLBACK POST LOOP----');
-						if(url_list.discovered.length > 0) {
-							active_loops = 0;
-							//console.log('----CALLING RECURSIVE CRAWL LOOP----');
-							_runCrawlLoop(callback);
-						} 
-						if(_noRemaining() && index==0) {
-							//Done...
-							//console.log('----CALLING CALLBACK----');
-							callback();
-							return;
-						}
-						console.log(`Discovered: ${url_list.discovered.length} || Crawled: ${url_list.crawled.length} || In Progress: ${url_list.started.length} || Index: ${index} || Failed: ${url_list.failed.length}`);
-					}).catch(function(err) {
-						//console.log('----CATCHING EXCEPTION----');
-						console.log(reporter, `[${e}] ${err}`);
-						url_list.failed.push(e);
-						console.log(reporter, "Error caught. Waiting 10 seconds to resume loop.");
-						active_loops = 0;
-						setTimeout(function() {
-							active_loops = 0;
-							_runCrawlLoop(callback);
-						}, 10000);
-					});
+		//Add the entry URL if it's not already there
+		if(_notYetFound(global.config.entry)) {
+			url_list.discovered.push(global.config.entry);
+		}
 
-				} else {
-					//console.log('----UNHANDLED SCENARIO----');
-					callback();
+		if(_noRemaining()) {
+			//We're done. Stop.
+			return;
+		}
+
+		//Set the crawl loop URL
+		let e = url_list.discovered[0];
+
+		//Send Request to the page
+		//console.log(`(${_needsToBeCrawled(e)} || ${_isPristine()}) && ${_hasCapacity()}`);
+		if((_needsToBeCrawled(e) || _isPristine()) && _hasCapacity()) {
+			_removeFromArray(e, url_list.discovered);
+			url_list.started.push(e);
+
+			_crawlPage(e, _getPageLinks).then(function(links) {
+				//Log Results
+				console.log(reporter, `Discovered: ${url_list.discovered.length} || Crawled: ${url_list.crawled.length} || In Progress: ${url_list.started.length} || Failed: ${url_list.failed.length}`);
+				//Remove the item from the started list & add to crawled
+				_removeFromArray(e, url_list.started);
+				url_list.crawled.push(e);
+
+				//Lopp through found links & add to discovered if legit
+				for (var i = links.length - 1; i >= 0; i--) {
+					if(_notYetFound(links[i]) && typeof links[i] == 'string') {
+						url_list.discovered.push(links[i]);
+					}
 				}
 
+				//Call the loop recursively again if we still have more
+				//console.log('----CRAWL CALLBACK POST LOOP----');
+				if(url_list.discovered.length > 0) {
+					_runCrawlLoop(callback);
+					return;
+				} 
+
+				//Callback if we don't have more
+				if(_noRemaining()) {
+					//Done...
+					callback(url_list);
+					return;
+				}
+				
+			}).catch(function(err) {
+				//console.log('----CATCHING EXCEPTION----');
+				_removeFromArray(e, url_list.started);
+				console.log(reporter, `${err}`);
+				url_list.failed.push(e);
+				//console.log(reporter, "Error caught. Waiting 10 seconds to resume loop.");
+				active_loops = 0;
+				setTimeout(function() {
+					active_loops = 0;
+					_runCrawlLoop(callback);
+				}, global.config.sleep_delay);
 			});
+
+
+			// Throttle not reached. Crawl more things!!
+			if(_hasCapacity() && url_list.discovered.length > 0) {
+				setTimeout(function() {
+					_runCrawlLoop(callback);
+				}, global.config.sleep_delay);
+			}
+
 		} else {
-			//console.log('----TOO MANY LOOPS RECURSIVE CALL----');
-			active_loops = 0;
-			_runCrawlLoop(callback);
+			if(!_needsToBeCrawled(e)) {
+				_removeFromArray(e, url_list.discovered);
+				url_list.failed.push(e);
+				//console.log(`${!_checkArray(e, url_list.started).exists} && ${!_checkArray(e, url_list.crawled).exists} && ${_checkArray(e, url_list.discovered).exists}`);
+				// console.log(reporter, `Page does not need to be crawled. Possible dupe? || ${e}`);
+				//_runCrawlLoop(callback);
+			} else if (!_hasCapacity()) {
+				//console.log(reporter, `No Capacity. Sleeping.`);
+				setTimeout(function() {
+					_runCrawlLoop(callback);
+				}, global.config.sleep_delay);
+			} else {
+				console.log(reporter, "UNHANDLED SCENARIO. URL: ${e}");
+			}
 		}
 
 	};
@@ -194,21 +235,18 @@ module.exports = function(cheerio, request) {
 		//Load URLs from the sitemap
 		_loadSitemapPages().then((data) => {
 			console.log(reporter, `Found ${data.sites.length} in Sitemap`);
-			url_list.discovered = url_list.discovered.concat(url_list.discovered, data.sites);
+			for (var i = data.sites.length - 1; i >= 0; i--) {
+				if(_notYetFound(data.sites[i])) {
+					url_list.discovered.push(data.sites[i]);
+				}
+			}
+			//url_list.discovered = url_list.discovered.concat(url_list.discovered, data.sites);
+			_runCrawlLoop(callback);
 		}).catch((error) => {
 			console.log(reporter, 'No sites found in sitemap.');
+			_runCrawlLoop(callback);
 		});
 
-		//Add the entry URL if it's not already there
-		if(_notYetFound(global.config.entry)) {
-			url_list.discovered.push(global.config.entry);
-		}
-
-		//Then run the crawl loop
-		_runCrawlLoop(function() {
-			console.log("Done!");
-			callback(url_list);
-		});
 	};
 
 	module.robotsTester = () => {
