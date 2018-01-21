@@ -19,11 +19,11 @@ Actively working on discovery methods.
 * Handle hashtags in URLs in discovery mode :white_check_mark:
 * Find out what's causing infinite crawl loop bug :white_check_mark:
 * Obey robots.txt (robots npm) :large_blue_diamond:
-* Utilize sitemap.xml if available (sitemapper npm) :large_blue_diamond:
+* Utilize sitemap.xml if available (sitemapper npm) :white_check_mark:
 * Handle mailto & other non-http links. :white_check_mark:
 * State saving (discovery)
 * Obey NOFOLLOW
-* Timed cleanup task that sorts out orphaned processes.
+* Timed cleanup task that sorts out orphaned processes. (Switch all these over to use NPM heartbeat)
 
 
 [![forthebadge](http://forthebadge.com/images/badges/certified-steve-bruhle.svg)](http://forthebadge.com)
