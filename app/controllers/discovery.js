@@ -22,7 +22,6 @@ module.exports = function(cheerio, request) {
 		return new Promise(function(resolve, reject) {
 			console.log(reporter, 'Initiating URL List Discovery.');
 			CRAWLER.findUrls(function(url_list) {
-				console.log(reporter, 'Successfully processed discovery crawl.');
 				resolve(url_list);
 			});
 		});

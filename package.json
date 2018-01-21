@@ -10,7 +10,8 @@
     "readline": "latest",
     "valid-url": "latest",
     "robots-parser": "latest",
-    "sitemapper": "latest"
+    "sitemapper": "latest",
+    "stay-awake": "latest"
   },
   "scripts": {
   	"start:dev": "NODE_ENV=development node --max-old-space-size=4096 app.js",

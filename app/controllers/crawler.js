@@ -3,6 +3,7 @@ module.exports = function(cheerio, request) {
 	const url_tool = require('url');
 	const Sitemapper = require('sitemapper');
 	const RobotsParser = require('robots-parser');
+	const OS = require('os');
 	const URL = require('./url')(cheerio, request);
 	const module = {};
 	const url_list = {
@@ -11,9 +12,15 @@ module.exports = function(cheerio, request) {
 		crawled: [],
 		failed: []
 	};
-	const last_success = 0;
+	let started = 0;
+	let last_success = 0;
+	let logger, reporting_iterator;
 
 	let active_loops = 0;
+
+	let _currentTime = () => {
+		return Date.now() / 1000;
+	};
 
 	let _isRelativeUrl = (url) => {
 		var absolute = /^https?:\/\/|^\/\//i;
@@ -91,6 +98,21 @@ module.exports = function(cheerio, request) {
 		return sitemap.fetch();
 	}
 
+	let _logReport = () => {
+		const used = process.memoryUsage().heapUsed / 1024 / 1024;
+		const time = new Date();
+		const load_average = OS.loadavg();
+		console.log(`\r\n-----${time.toISOString()}-----`);
+		console.log(`Discovered: ${url_list.discovered.length}`);
+		console.log(`Crawled: ${url_list.crawled.length}`);
+		console.log(`In Progress: ${url_list.started.length}`);
+		console.log(`Omitted: ${url_list.failed.length}`);
+		console.log(`Memory: ${Math.round(used * 100) / 100} MB`);
+		console.log(`CPU Load: ${load_average}`);
+		console.log(`Time Elapsed: ${Math.ceil(_currentTime() - started)} Seconds`);
+		console.log(`---------------------------------\r\n`);
+	};
+
 	let _getPageLinks = ($, url) => {
 		let links = [],
 				link_count = $('a').length;
@@ -151,6 +173,8 @@ module.exports = function(cheerio, request) {
 
 		if(_noRemaining()) {
 			//We're done. Stop.
+			callback(url_list);
+			clearInterval(reporting_iterator);
 			return;
 		}
 
@@ -164,8 +188,8 @@ module.exports = function(cheerio, request) {
 			url_list.started.push(e);
 
 			_crawlPage(e, _getPageLinks).then(function(links) {
-				//Log Results
-				console.log(reporter, `Discovered: ${url_list.discovered.length} || Crawled: ${url_list.crawled.length} || In Progress: ${url_list.started.length} || Failed: ${url_list.failed.length}`);
+
+
 				//Remove the item from the started list & add to crawled
 				_removeFromArray(e, url_list.started);
 				url_list.crawled.push(e);
@@ -177,6 +201,8 @@ module.exports = function(cheerio, request) {
 					}
 				}
 
+				last_success = _currentTime();
+
 				//Call the loop recursively again if we still have more
 				//console.log('----CRAWL CALLBACK POST LOOP----');
 				if(url_list.discovered.length > 0) {
@@ -187,6 +213,7 @@ module.exports = function(cheerio, request) {
 				//Callback if we don't have more
 				if(_noRemaining()) {
 					//Done...
+					clearInterval(reporting_iterator);
 					callback(url_list);
 					return;
 				}
@@ -233,7 +260,7 @@ module.exports = function(cheerio, request) {
 
 	//Revealed Modules
 	module.findUrls = (callback) => {
-
+		started = _currentTime();
 		//Load URLs from the sitemap
 		_loadSitemapPages().then((data) => {
 			console.log(reporter, `Found ${data.sites.length} in Sitemap`);
@@ -243,6 +270,7 @@ module.exports = function(cheerio, request) {
 				}
 			}
 			//url_list.discovered = url_list.discovered.concat(url_list.discovered, data.sites);
+			reporting_iterator = setInterval(_logReport,global.config.report_every);
 			_runCrawlLoop(callback);
 		}).catch((error) => {
 			console.log(reporter, 'No sites found in sitemap.');
