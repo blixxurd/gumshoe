@@ -1,9 +1,10 @@
 module.exports = function(cheerio, request) {
-	const reporter = "[CRAWLER]";
 	const url_tool = require('url');
 	const Sitemapper = require('sitemapper');
 	const RobotsParser = require('robots-parser');
+	const FS = require('fs');
 	const OS = require('os');
+	const Util = require('util');
 	const URL = require('./url')(cheerio, request);
 	const module = {};
 	const url_list = {
@@ -12,6 +13,7 @@ module.exports = function(cheerio, request) {
 		crawled: [],
 		failed: []
 	};
+	const reporter = "[CRAWLER]";
 	let started = 0;
 	let last_success = 0;
 	let logger, reporting_iterator;
@@ -98,7 +100,16 @@ module.exports = function(cheerio, request) {
 		return sitemap.fetch();
 	}
 
+	let _saveProgress = () => {
+		const filename = url_tool.parse(global.config.root_domain).hostname + '.json';
+		const path = 'tmp/valid_sites/' + filename;
+		FS.writeFile(path, JSON.stringify(url_list, null, 2), function(err) {
+			console.log(err ? err : '\r\n----------\r\nProgress Saved.\r\n----------\r\n')
+		}); 
+	}
+
 	let _logReport = () => {
+		_saveProgress();
 		const used = process.memoryUsage().heapUsed / 1024 / 1024;
 		const time = new Date();
 		const load_average = OS.loadavg();
@@ -119,7 +130,10 @@ module.exports = function(cheerio, request) {
 		//console.log(reporter, `[${url}] Found ${link_count} links on page.`);
 		$('a').each(function(i, ele) {
 			let l = $(this).attr('href');
-			if(typeof l == "string") {
+			const rel = $(this).attr('rel');
+			const nofollow = (typeof rel == "string" && rel == "nofollow") ? true : false;
+
+			if(typeof l == "string" && !nofollow) {
 				//Resolve relative URLs
 				if(_isRelativeUrl(l)) {
 					l = url_tool.resolve(url, l);
@@ -172,7 +186,8 @@ module.exports = function(cheerio, request) {
 		}
 
 		if(_noRemaining()) {
-			//We're done. Stop.
+			//We're done. Clear interval, save, and stop.
+			_saveProgress();
 			callback(url_list);
 			clearInterval(reporting_iterator);
 			return;
@@ -212,7 +227,8 @@ module.exports = function(cheerio, request) {
 
 				//Callback if we don't have more
 				if(_noRemaining()) {
-					//Done...
+					//Done... Clear interval, save, and stop.
+					_saveProgress();
 					clearInterval(reporting_iterator);
 					callback(url_list);
 					return;

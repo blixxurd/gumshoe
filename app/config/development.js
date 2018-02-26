@@ -5,6 +5,7 @@ module.exports = function() {
 		save_every: 50,
 		report_every: 5000,
 		ignore_sitemap: true,
+		start_from_last: true, 
 		request : {
 			timeout: 8000,
 			headers: {
