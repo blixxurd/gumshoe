@@ -1,17 +1,10 @@
 # Gumshoe
 
-Gumshoe is a NodeJS spider. It's sole purpose is to explore your website, and discover things about it. Gumshoe will be scriptable so that you can extend the spider easily with custom JS. 
-
-## Current Status
-:large_blue_diamond: **IN PROGRESS**
-
-Actively working on discovery methods. 
+Gumshoe is a NodeJS spider. The goal is to create a fast crawler that can go through a website and collect all links within. 
 
 ## Milestones
 * Scaffold App :white_check_mark:
 * Create "Discovery" methods :white_check_mark:
-* Create custom script injection :large_blue_diamond: 
-* Create crawling scripts
 
 ### To Do
 * Handle non-200s in discovery mode :white_check_mark:
